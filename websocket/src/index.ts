@@ -16,12 +16,13 @@ server.on("connection", (connection) => {
       });
 
       let manifest: SDK.PluginManifest = {
-         name: "Plune Watcher",
+         name: "Puryfi-Chaster-Linker",
          version: "1.0.0",
          description: "Logs media scan and trigger consequences",
          author: "Sereti <httxsereti@gmail.com>",
          website: null,
       };
+
       await connection
          .sendMessage("setPluginManifest", { manifest })
          .then((res) => {
@@ -42,6 +43,7 @@ server.on("connection", (connection) => {
             value: "",
          },
       };
+
       await connection
          .sendMessage("setPluginConfiguration", { configuration })
          .then((res) => {
@@ -56,7 +58,7 @@ server.on("connection", (connection) => {
          configuration = payload.configuration;
       });
 
-      const intents: SDK.PluginIntent[] = ["readMediaProcesses"];
+      const intents: SDK.PluginIntent[] = ["readUserState", "readMediaProcesses"];
 
       const { intents: grantedIntents } = await connection
          .sendMessage("getPluginIntents", {})
@@ -103,6 +105,14 @@ server.on("connection", (connection) => {
                );
             }
          });
+
+      
+      await connection
+      .sendMessage("getState", { path: "user.username" })
+      .then((res) => {
+         console.log('received state')
+         console.log(res)
+      });
 
       connection.on("message", "staticMediaScan", ({ objects }) => {
          const isLogEmpty = Boolean(configuration.logEmptyObjects?.value);
