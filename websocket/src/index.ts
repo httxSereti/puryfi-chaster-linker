@@ -1,5 +1,13 @@
 import * as SDK from "@pury-fi/plugin-sdk/websocket";
 
+const manifest: SDK.PluginManifest = {
+   name: "Puryfi-Chaster-Linker",
+   version: "1.0.0",
+   description: "Link Puryfi with your Chaster lock",
+   author: "Sereti <httxsereti@gmail.com>",
+   website: "https://paa.ge/sereti",
+};
+
 const server = new SDK.WebSocketServer(8093);
 server.setDebug(true);
 
@@ -14,14 +22,6 @@ server.on("connection", (connection) => {
             return res;
          });
       });
-
-      let manifest: SDK.PluginManifest = {
-         name: "Puryfi-Chaster-Linker",
-         version: "1.0.0",
-         description: "Logs media scan and trigger consequences",
-         author: "Sereti <httxsereti@gmail.com>",
-         website: null,
-      };
 
       await connection
          .sendMessage("setPluginManifest", { manifest })
@@ -106,13 +106,13 @@ server.on("connection", (connection) => {
             }
          });
 
-      
+
       await connection
-      .sendMessage("getState", { path: "user.username" })
-      .then((res) => {
-         console.log('received state')
-         console.log(res)
-      });
+         .sendMessage("getState", { path: "user.username" })
+         .then((res) => {
+            console.log('received state')
+            console.log(res)
+         });
 
       connection.on("message", "staticMediaScan", ({ objects }) => {
          const isLogEmpty = Boolean(configuration.logEmptyObjects?.value);
@@ -120,7 +120,7 @@ server.on("connection", (connection) => {
          console.log(`Scan event: ${objects.length} object(s) detected`);
          for (const obj of objects) {
             const label = SDK.Label[obj.label]
-            
+
             console.log(
                `label=${label} score=${obj.score.toFixed(3)} at (${obj.rect.x.toFixed(3)}, ${obj.rect.y.toFixed(3)}) ${obj.rect.width.toFixed(3)}x${obj.rect.height.toFixed(3)}`
             );
