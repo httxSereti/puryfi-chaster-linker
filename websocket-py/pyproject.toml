@@ -1,0 +1,12 @@
+[project]
+name = "websocket-py"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "fastapi>=0.135.2",
+    "msgpack>=1.1.2",
+    "uvicorn>=0.42.0",
+    "websockets>=16.0",
+]
