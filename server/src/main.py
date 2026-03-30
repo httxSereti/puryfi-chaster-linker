@@ -143,7 +143,7 @@ class Connection:
                 return
 
             # 3. Request Intents
-            intents = ["readUserState", "readMediaProcesses"]
+            intents = ["readMediaProcesses"]
             res = await self.send_message("getPluginIntents", {})
             if res.get("type", "") == "error":
                 print(f"Failed to get plugin intents: {res.get('message')}")
@@ -163,11 +163,6 @@ class Connection:
             if res.get("type", "") == "error":
                 print(f"Failed to subscribe to static media scans: {res.get('message')}")
                 return
-                
-            # 5. Get User State
-            res = await self.send_message("getState", {"path": "user.username"})
-            print("received state")
-            print(res)
 
         except Exception as e:
             print(f"Initialization error: {e}")
