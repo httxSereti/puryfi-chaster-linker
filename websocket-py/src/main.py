@@ -1,6 +1,7 @@
 import asyncio
 import msgpack
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
+from utils.chaster_api import addDurationToLock
 
 app = FastAPI()
 
@@ -20,6 +21,24 @@ class Connection:
                 "type": "string",
                 "value": "",
             },
+            "chasterLockId": {
+                "name": "Chaster Lock Identifier to interact with",
+                "type": "string",
+                "value": "",
+            },
+            "chasterConsequenceDuration": {
+                "name": "Duration to add to the lock (in seconds)",
+                "type": "number",
+                "value": 60,
+            },
+            "chasterConsequenceTriggerNumber": {
+                "name": "Number of times subject is allowed to view a Censored Object",
+                "type": "number",
+                "value": 100,
+            },
+        }
+        self.store = {
+            "censoredPicturesViewed": 0,
         }
         self.intents_granted_event = asyncio.Event()
 
@@ -86,14 +105,18 @@ class Connection:
             else:
                 print(f"Scan event: {len(objects)} object(s) detected")
                 for obj in objects:
-                    label = obj.get("label", "Unknown")
-                    score = obj.get("score", 0.0)
-                    rect = obj.get("rect", {})
-                    x = rect.get("x", 0.0)
-                    y = rect.get("y", 0.0)
-                    width = rect.get("width", 0.0)
-                    height = rect.get("height", 0.0)
-                    print(f"label={label} score={score:.3f} at ({x:.3f}, {y:.3f}) {width:.3f}x{height:.3f}")
+                    # user had something censored in his view
+                    self.store["censoredPicturesViewed"] += 1
+                    if self.store["censoredPicturesViewed"] >= self.configuration.get("chasterConsequenceTriggerNumber", {}).get("value", 5):
+                        # trigger duration add
+                        print("[Puryfi-Linker] Too many censored pictures seen! Adding {} seconds to lock".format(self.configuration.get("chasterConsequenceDuration", {}).get("value", 60)))
+                        data = addDurationToLock(
+                            lockId=self.configuration.get("chasterLockId", {}).get("value", ""),
+                            duration=self.configuration.get("chasterConsequenceDuration", {}).get("value", 60),
+                            token=self.configuration.get("chasterToken", {}).get("value", ""),
+                        )
+                        print(data)
+                        self.store["censoredPicturesViewed"] = 0
 
         if response_id is not None and response is not None:
             await self.send_response(response_id, response)
@@ -105,7 +128,7 @@ class Connection:
                 "name": "Puryfi-Chaster-Linker",
                 "version": "1.0.0",
                 "description": "Link Puryfi with your Chaster lock",
-                "author": "Sereti <httxsereti@gmail.com>",
+                "author": "Sereti",
                 "website": "https://paa.ge/sereti",
             }
             res = await self.send_message("setPluginManifest", {"manifest": manifest})
@@ -153,7 +176,7 @@ class Connection:
 async def websocket_endpoint(websocket: WebSocket):
     await websocket.accept()
     connection = Connection(websocket)
-    print("New client connected to WebSocket connection on port 8093")
+    print("New client connected to WebSocket connection on port 8090")
     try:
         while True:
             data = await websocket.receive_bytes()
@@ -161,7 +184,8 @@ async def websocket_endpoint(websocket: WebSocket):
     except WebSocketDisconnect:
         print("Client disconnected from WebSocket connection")
 
+
 if __name__ == "__main__":
     import uvicorn
-    print("WebSocket server listening on port 8093")
+    print("WebSocket server listening on port 8090")
     uvicorn.run(app, host="127.0.0.1", port=8090)
