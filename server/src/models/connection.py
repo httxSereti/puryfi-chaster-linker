@@ -11,6 +11,13 @@ manifest = {
     "website": "https://paa.ge/sereti",
 }
 
+intents = [
+    "readUserState", # read username
+    "readMediaProcesses", # scan for censored objects
+    "writeLockConfigurationState", # lock puryfi
+    "writeEnabledState", # enable/disable puryfi
+]
+
 class Connection:
     def __init__(self, websocket: WebSocket):
         self.websocket = websocket
@@ -99,7 +106,7 @@ class Connection:
             
         elif msg_type == "intentsGrant":
             granted_intents = payload.get("intents", [])
-            required_intents = ["readUserState", "readMediaProcesses"]
+            required_intents = intents
             if all(intent in granted_intents for intent in required_intents):
                 self.intents_granted_event.set()
                 
@@ -143,7 +150,6 @@ class Connection:
                 return
 
             # 3. Request Intents
-            intents = ["readUserState","readMediaProcesses"]
             res = await self.send_message("getPluginIntents", {})
             if res.get("type", "") == "error":
                 print(f"Failed to get plugin intents: {res.get('message')}")

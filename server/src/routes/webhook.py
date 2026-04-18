@@ -9,7 +9,23 @@ async def read_chaster_webhook(username: str):
 
     connection = manager.get_by_username(username)
     if connection:
-        # connection.send_message()
+        # enable Puryfi
+        resEnabled = await connection.send_message("setState", {"path": "enabled", "value": True})
+        print(resEnabled)
+
+        print("--------")
+        # lock puryfi
+        resPassword = await connection.send_message("setState", {
+            "path": "lockConfiguration", 
+            "value": {
+                "password": {"secret": "test"}
+            }
+        })
+        # resToken = await connection.send_message("setState", {"path": "lockConfiguration.emergencyClientToken", "value": 444})
+       
+        print(resPassword)
+        # print(resToken)
+
         return {"status": "ok"}
 
-    return {"status": "error"}
+    return {"status": "Puryfi is offline/not linked."}
