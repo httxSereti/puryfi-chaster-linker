@@ -5,11 +5,20 @@ from utils.chaster_api import addDurationToLock
 
 app = FastAPI()
 
+manifest = {
+    "name": "Puryfi-Chaster-Linker",
+    "version": "1.0.0",
+    "description": "Link Puryfi with your Chaster lock",
+    "author": "Sereti",
+    "website": "https://paa.ge/sereti",
+}
+
 class Connection:
     def __init__(self, websocket: WebSocket):
         self.websocket = websocket
         self.next_response_id = 0
         self.pending_requests = {}
+        self.username = ""
         self.configuration = {
             "logEmptyObjects": {
                 "name": "Log Empty Scans",
@@ -124,13 +133,6 @@ class Connection:
     async def initialize_plugin(self):
         try:
             # 1. Set Plugin Manifest
-            manifest = {
-                "name": "Puryfi-Chaster-Linker",
-                "version": "1.0.0",
-                "description": "Link Puryfi with your Chaster lock",
-                "author": "Sereti",
-                "website": "https://paa.ge/sereti",
-            }
             res = await self.send_message("setPluginManifest", {"manifest": manifest})
             if res.get("type", "") == "error":
                 print(f"Failed to set plugin manifest: {res.get('message')}")
@@ -143,7 +145,7 @@ class Connection:
                 return
 
             # 3. Request Intents
-            intents = ["readMediaProcesses"]
+            intents = ["readUserState","readMediaProcesses"]
             res = await self.send_message("getPluginIntents", {})
             if res.get("type", "") == "error":
                 print(f"Failed to get plugin intents: {res.get('message')}")
@@ -164,13 +166,21 @@ class Connection:
                 print(f"Failed to subscribe to static media scans: {res.get('message')}")
                 return
 
+            # 5. Get User State for username
+            res = await self.send_message("getState", {"path": "user.username"})
+            username = res.get("value")
+            self.username = username
+
         except Exception as e:
             print(f"Initialization error: {e}")
+
+connections: list[Connection] = []
 
 @app.websocket("/")
 async def websocket_endpoint(websocket: WebSocket):
     await websocket.accept()
     connection = Connection(websocket)
+    connections.append(connection)
     print("New client connected to WebSocket connection on port 8090")
     try:
         while True:
@@ -179,6 +189,18 @@ async def websocket_endpoint(websocket: WebSocket):
     except WebSocketDisconnect:
         print("Client disconnected from WebSocket connection")
 
+@app.get("/webhook/{username}", tags=["chaster"])
+async def read_chaster_webhook(username: str):
+    print(username)
+
+    for connection in connections:
+        print(connection.username)
+        if connection.username.lower() == username.lower():
+            # connection.send_message()
+            return {"status": "ok"}
+
+
+    return {"status": "error"}
 
 if __name__ == "__main__":
     import uvicorn
