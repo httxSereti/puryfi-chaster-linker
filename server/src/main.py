@@ -1,13 +1,20 @@
 import os
+from contextlib import asynccontextmanager
 from dotenv import load_dotenv
 
 load_dotenv()
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from db import init_db
 from routes import websocket, webhook, extensions
 
-app = FastAPI()
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    init_db()
+    yield
+
+app = FastAPI(lifespan=lifespan)
 
 app.add_middleware(
     CORSMiddleware,
@@ -23,5 +30,5 @@ app.include_router(extensions.router)
 
 if __name__ == "__main__":
     import uvicorn
-    print("WebSocket server listening on port 8090")
-    uvicorn.run(app, host="127.0.0.1", port=8090)
+    print("WebSocket server listening on port 8000")
+    uvicorn.run(app, host="127.0.0.1", port=8000)

@@ -45,3 +45,11 @@ export interface PartnerGetSessionAuthRepDto {
   userId: string;
   session: PartnerSession;
 }
+
+export interface PartnerGetConfigurationAuthRepDto {
+  sessionId: string | null;
+  extensionSlug: string;
+  user: string;
+  config: any;
+  createdAt: string;
+}

@@ -1,0 +1,33 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: puryfi-chaster-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-puryfi}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-puryfi}
+      POSTGRES_DB: ${POSTGRES_DB:-puryfi_chaster}
+    ports:
+      # Exposed on host so the server (running locally, outside Docker) can connect
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-puryfi} -d ${POSTGRES_DB:-puryfi_chaster}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  front:
+    build:
+      context: ./front
+      dockerfile: Dockerfile
+    container_name: puryfi-chaster-front
+    restart: unless-stopped
+    ports:
+      - "3000:80"
+    environment:
+      - VITE_API_URL=${VITE_API_URL:-http://localhost:8090}
+
+volumes:
+  postgres_data:

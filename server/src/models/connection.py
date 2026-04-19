@@ -23,8 +23,17 @@ class Connection:
         self.websocket = websocket
         self.next_response_id = 0
         self.pending_requests = {}
+
         self.username = ""
+        self.link_token = ""
+        self.is_linked = False
+
         self.configuration = {
+            "linkToken": {
+                "name": "Token to link Puryfi with Chaster",
+                "type": "string",
+                "value": "",
+            },
             "logEmptyObjects": {
                 "name": "Log Empty Scans",
                 "type": "boolean",
@@ -102,7 +111,16 @@ class Connection:
             asyncio.create_task(self.initialize_plugin())
             
         elif msg_type == "configurationChange":
-            self.configuration = payload.get("configuration", self.configuration)
+            configuration = payload.get("configuration", self.configuration)
+
+            # get linking token, if it changed, save it in db
+            linkToken = configuration.get("linkToken", {}).get("value", "")
+            if linkToken != "" and self.configuration.get("linkToken", "") != linkToken:
+                
+                pass
+
+            self.configuration = configuration
+                
             
         elif msg_type == "intentsGrant":
             granted_intents = payload.get("intents", [])

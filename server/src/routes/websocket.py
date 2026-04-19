@@ -7,8 +7,11 @@ router = APIRouter()
 @router.websocket("/")
 async def websocket_endpoint(websocket: WebSocket):
     await websocket.accept()
+
+    # connect WebSocket
     connection = Connection(websocket)
     manager.add(connection)
+
     print("[WS] New client connected to WebSocket connection on port 8090")
     try:
         while True:

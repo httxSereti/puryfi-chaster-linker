@@ -1,11 +1,12 @@
 import { useEffect, useState } from "react";
-import { Loader2, Lock, ShieldCheck } from "lucide-react";
+import { Loader2 } from "lucide-react";
 import axios from "axios";
 
-import type { PartnerGetSessionAuthRepDto } from "@/types/chaster";
+import type { ChasterExtensionSessionSchema } from "@/types/api";
+import ChasterSession from "@/components/common/sessions/ChasterSession";
 
 export default function Main() {
-  const [sessionData, setSessionData] = useState<PartnerGetSessionAuthRepDto | null>(null);
+  const [sessionData, setSessionData] = useState<ChasterExtensionSessionSchema | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -46,9 +47,7 @@ export default function Main() {
         <div className="flex flex-col items-center text-center space-y-6">
 
           <div className="p-4 bg-cyan-950/30 rounded-full border border-cyan-900/50 shadow-inner">
-            <svg className="w-10 h-10 text-cyan-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
-            </svg>
+            <img src="/logo.png" alt="Puryfi Chaster Linker" className="w-10 h-10 object-contain" />
           </div>
 
           <div className="space-y-2">
@@ -72,37 +71,7 @@ export default function Main() {
               <p className="text-sm text-slate-400 animate-pulse">Fetching session...</p>
             </div>
           ) : sessionData ? (
-            <div className="w-full space-y-4">
-              <div className="w-full p-4 bg-slate-950 border border-slate-800 rounded-xl space-y-3">
-                <div className="flex items-center gap-3">
-                  <ShieldCheck className="w-5 h-5 text-emerald-400" />
-                  <p className="text-sm font-semibold text-slate-200">Session Synced</p>
-                </div>
-                <div className="grid grid-cols-2 gap-2 text-left">
-                  <div>
-                    <p className="text-xs text-slate-500 uppercase tracking-wider">Role</p>
-                    <p className="text-sm font-medium text-slate-300 capitalize">{sessionData.role}</p>
-                  </div>
-                  <div>
-                    <p className="text-xs text-slate-500 uppercase tracking-wider">Mode</p>
-                    <p className="text-sm font-medium text-slate-300 capitalize">{sessionData.session.mode.replace('_', ' ')}</p>
-                  </div>
-                </div>
-                <div className="text-left bg-slate-900 p-3 rounded-lg border border-slate-800">
-                  <div className="flex items-center gap-2 mb-1">
-                    <Lock className="w-4 h-4 text-cyan-500" />
-                    <p className="text-xs text-slate-500 uppercase tracking-wider">Lock</p>
-                  </div>
-                  <p className="text-sm font-mono text-cyan-300 truncate" title={sessionData.session.lock._id}>
-                    {sessionData.session.lock._id}
-                  </p>
-                </div>
-              </div>
-
-              <button className="w-full py-3 px-4 bg-cyan-600 hover:bg-cyan-500 text-white text-sm font-semibold rounded-xl transition-colors shadow-lg shadow-cyan-900/20 active:scale-95">
-                Sync
-              </button>
-            </div>
+            <ChasterSession session={sessionData} />
           ) : null}
         </div>
       </div>
