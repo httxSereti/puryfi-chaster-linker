@@ -1,3 +1,4 @@
+import "@iframe-resizer/child";
 import { Routes, Route } from 'react-router-dom'
 import Main from './pages/Main'
 import Configuration from './pages/Configuration'
