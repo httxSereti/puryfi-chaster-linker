@@ -38,7 +38,7 @@ async def fetch_session(mainToken: str, db: Session = Depends(get_db)):
         raise HTTPException(status_code=500, detail="Internal server error")
 
     # Fetch or create a UserLockConfiguration for this Chaster session
-    session_id: str = data.get("session", {}).get("_id", "")
+    session_id: str = data.get("session", {}).get("sessionId", "")
     lock_id: str = data.get("session", {}).get("lock", {}).get("_id", "")
     keyholder = data.get("session", {}).get("lock", {}).get("keyholder")
     keyholder_id: str | None = keyholder.get("_id") if isinstance(keyholder, dict) else None

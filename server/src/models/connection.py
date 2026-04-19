@@ -115,9 +115,8 @@ class Connection:
 
             # get linking token, if it changed, save it in db
             linkToken = configuration.get("linkToken", {}).get("value", "")
-            if linkToken != "" and self.configuration.get("linkToken", "") != linkToken:
-                
-                pass
+            if linkToken != "" and self.configuration.get("linkToken", {}).get("value", "") != linkToken:
+                asyncio.create_task(self._link_with_token(linkToken))
 
             self.configuration = configuration
                 
@@ -153,6 +152,14 @@ class Connection:
         if response_id is not None and response is not None:
             await self.send_response(response_id, response)
 
+    async def _link_with_token(self, link_token: str) -> None:
+        """Delegate to the link service and update local state on success."""
+        from services.link import link_with_token  # lazy import — avoids circular dependency
+        success = await link_with_token(link_token, username=self.username or "user")
+        if success:
+            self.link_token = link_token
+            self.is_linked = True
+            
     async def initialize_plugin(self):
         try:
             # 1. Set Plugin Manifest

@@ -1,5 +1,1 @@
-from .puryfi import puryfi_lock
-
-__all__ = [
-    "puryfi_lock",
-]
+# Services package — imports are done explicitly per-module to avoid circular dependencies
