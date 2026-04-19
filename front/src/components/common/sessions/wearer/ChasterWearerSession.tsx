@@ -17,7 +17,7 @@ export default function ChasterWearerSession({ session }: { session: ChasterExte
 
     return (
         <>
-            <div className="flex flex-col gap-2 text-left">
+            <div className="flex flex-col gap-3 text-left">
                 <div className="flex items-center justify-between">
                     <div className="flex flex-row gap-2 items-center">
                         <ShieldCheck className="w-5 h-5 text-slate-400" />
@@ -35,6 +35,8 @@ export default function ChasterWearerSession({ session }: { session: ChasterExte
                         </button>
                     )}
                 </div>
+
+
             </div>
 
             {modalOpen && (
@@ -47,4 +49,4 @@ export default function ChasterWearerSession({ session }: { session: ChasterExte
             )}
         </>
     );
-}
+}

@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Copy, Check, Key, Loader2, X } from "lucide-react";
+import { Copy, Check, Key, Loader2, RefreshCw, X } from "lucide-react";
 import axios from "axios";
 
 interface LinkTokenModalProps {
@@ -107,6 +107,14 @@ export default function LinkTokenModal({ sessionId, linkToken, onClose, onTokenC
                         </button>
                     </div>
                 )}
+                {/* Check synchronization */}
+                <button
+                    onClick={() => window.location.reload()}
+                    className="w-full flex items-center justify-center gap-2 py-2.5 px-4 bg-slate-800 hover:bg-slate-700 active:scale-95 text-slate-300 text-sm font-semibold rounded-xl transition-all border border-slate-700"
+                >
+                    <RefreshCw className="w-4 h-4" />
+                    Check Synchronization
+                </button>
             </div>
         </div>
     );
