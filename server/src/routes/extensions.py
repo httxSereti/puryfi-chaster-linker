@@ -3,11 +3,14 @@ import requests
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from db import get_db
-from models.chaster import PartnerGetSessionAuthRepDto
+from models.chaster import PartnerGetSessionAuthRepDto, PartnerConfigurationForPublic
 from models.sql.user_lock_configuration import UserLockConfiguration
-from schemas.chaster_extension_session_schema import ChasterExtensionSessionSchema
+from schemas import ChasterExtensionSessionSchema, ChasterExtensionConfigurationSchema, ChasterExtensionConfigSchema
+from pprint import pprint
 
 router = APIRouter(prefix="/api/extensions", tags=["extensions"])
+
+developer_token = os.getenv("CHASTER_DEVELOPER_TOKEN", "")
 
 @router.get("/auth/sessions/{mainToken}", response_model=ChasterExtensionSessionSchema)
 async def fetch_session(mainToken: str, db: Session = Depends(get_db)):
@@ -15,7 +18,6 @@ async def fetch_session(mainToken: str, db: Session = Depends(get_db)):
         Fetch Chaster session and create a UserLockConfiguration for it
         using the Developer Token and mainToken issued when opening iframe on chaster app
     """
-    developer_token = os.getenv("CHASTER_DEVELOPER_TOKEN", "")
 
     headers = {
         "accept": "application/json",
@@ -31,6 +33,7 @@ async def fetch_session(mainToken: str, db: Session = Depends(get_db)):
         )
         response.raise_for_status()
         data = response.json()
+        pprint(data)
     except requests.exceptions.HTTPError as e:
         status_code = e.response.status_code if e.response else 500
         raise HTTPException(status_code=status_code, detail=str(e))
@@ -48,25 +51,29 @@ async def fetch_session(mainToken: str, db: Session = Depends(get_db)):
     lock_config = db.query(UserLockConfiguration).filter_by(session_id=session_id).first()
 
     if lock_config is None:
+        # if no lock_config found, create one
         lock_config = UserLockConfiguration(
             session_id=session_id,
             lock_id=lock_id or None,
             keyholder_id=keyholder_id,
             wearer_id=wearer_id,
+            lock_on_freeze=data.get("session", {}).get("config", {}).get("lock_on_freeze", False),
+            unlock_on_unfreeze=data.get("session", {}).get("config", {}).get("unlock_on_unfreeze", False),
         )
         db.add(lock_config)
         db.commit()
         db.refresh(lock_config)
-        print(f"[DB] Created UserLockConfiguration for session {session_id!r}")
-    else:
-        print(f"[DB] Found existing UserLockConfiguration for session {session_id!r}")
+        print(f"[DB] Created UserLockConfiguration for session {lock_id!r}")
 
     session_schema = ChasterExtensionSessionSchema(
         id=lock_config.id,
         role=data.get("role", ""),
         is_linked=lock_config.is_linked,
         link_token=lock_config.link_token,
+        lock_on_freeze=lock_config.lock_on_freeze,
+        unlock_on_unfreeze=lock_config.unlock_on_unfreeze,
     )
+
     return session_schema
 
 
@@ -93,22 +100,21 @@ async def create_link_token(session_id: str, db: Session = Depends(get_db)):
         role="",  # role not stored on the config row
         is_linked=lock_config.is_linked,
         link_token=lock_config.link_token,
+        lock_on_freeze=lock_config.lock_on_freeze,
+        unlock_on_unfreeze=lock_config.unlock_on_unfreeze,
     )
 
-@router.get("/configuration/{configurationToken}")
-async def configuration(configurationToken: str):
+@router.get("/configuration/{configurationToken}", response_model=ChasterExtensionConfigurationSchema)
+async def configuration(configurationToken: str, db: Session = Depends(get_db)):
     """
         Get the configuration of the extension
     """
-    developer_token = os.getenv("CHASTER_DEVELOPER_TOKEN", "")
-
-    if not developer_token:
-        print("[WARNING] CHASTER_DEVELOPER_TOKEN empty!")
-
     headers = {
         "accept": "application/json",
         "Authorization": f"Bearer {developer_token}"
     }
+
+    data: PartnerConfigurationForPublic | None = None
 
     try:
         response = requests.get(
@@ -116,7 +122,115 @@ async def configuration(configurationToken: str):
             headers=headers
         )
         response.raise_for_status()
-        return response.json()
+        data = PartnerConfigurationForPublic(**response.json())
+
+    except requests.exceptions.HTTPError as e:
+        status_code = e.response.status_code if e.response else 500
+        raise HTTPException(status_code=status_code, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail="Internal server error")
+
+    print("\n\n[DATA]")
+    pprint(data)
+
+    # no lock active, shared-lock or self-lock so use chaster to save configuration
+    if not data.sessionId:
+        print('no active lock, using chaster to save configuration')
+        schema = ChasterExtensionConfigurationSchema(
+            id="",
+            role=data.role,
+            is_linked=False,
+            link_token=None,
+            config=data.config
+        )   
+        pprint(schema)
+        return schema
+    
+    # fetch lock_config for session_id
+    try:
+        lock_config = db.query(UserLockConfiguration).filter_by(session_id=data.sessionId).first()
+    except Exception as e:
+        raise HTTPException(status_code=500, detail="Unable to fetch lock_config")
+    
+    # if no lock_config found, create one
+    if lock_config is None:
+        # use the configuration from chaster (if it self lock or shared lock)
+        lock_config = UserLockConfiguration(
+            session_id=data.sessionId,
+            lock_on_freeze=data.config.get("lock_on_freeze", False),
+            unlock_on_unfreeze=data.config.get("unlock_on_unfreeze", False),
+        )
+        db.add(lock_config)
+        db.commit()
+        print(f"[DB] Created UserLockConfiguration for wearer session {data.sessionId!r} via config hook")
+    
+    if data.role == "wearer":
+        configuration = ChasterExtensionConfigurationSchema(
+            id=lock_config.id,
+            role=data.role,
+            is_linked=lock_config.is_linked,
+            link_token=lock_config.link_token,
+            config=ChasterExtensionConfigSchema(
+                lock_on_freeze=lock_config.lock_on_freeze,
+                unlock_on_unfreeze=lock_config.unlock_on_unfreeze,
+            ),
+        )
+
+        return configuration
+    else:
+        configuration = ChasterExtensionConfigurationSchema(
+            id=lock_config.id,
+            role=data.role,
+            is_linked=lock_config.is_linked,
+            config=ChasterExtensionConfigSchema(
+                lock_on_freeze=lock_config.lock_on_freeze,
+                unlock_on_unfreeze=lock_config.unlock_on_unfreeze,
+            ),
+        )
+
+        return configuration
+
+@router.put("/configuration/{configurationToken}")
+async def update_configuration(configurationToken: str, payload: dict, db: Session = Depends(get_db)):
+    """
+        Update the configuration of the extension
+    """
+    developer_token = os.getenv("CHASTER_DEVELOPER_TOKEN", "")
+
+    headers = {
+        "accept": "application/json",
+        "Authorization": f"Bearer {developer_token}",
+        "Content-Type": "application/json",
+    }
+
+    try:
+        response = requests.put(
+            f"https://api.chaster.app/api/extensions/configurations/{configurationToken}",
+            headers=headers,
+            json={"config": payload}
+        )
+        response.raise_for_status()
+        
+        data = response.json()
+        session_id = data.get("sessionId")
+        pprint(data)
+        print(f"[config-put] payload received: {payload}")
+        print(f"[config-put] session_id from chaster: {session_id}")
+        
+        if session_id:
+            lock_config = db.query(UserLockConfiguration).filter_by(session_id=session_id).first()
+            if lock_config:
+                print(f"[config-put] found lock_config id: {lock_config.id}")
+                lock_config.lock_on_freeze = payload.get("lock_on_freeze", lock_config.lock_on_freeze)
+                lock_config.unlock_on_unfreeze = payload.get("unlock_on_unfreeze", lock_config.unlock_on_unfreeze)
+                db.commit()
+                print(f"[DB] Updated UserLockConfiguration for session {session_id!r}")
+            else:
+                print(f"[config-put] NO lock_config found for session_id: {session_id}")
+        else:
+            print(f"[config-put] NO session_id in response!")
+            
+        return {"status": "ok"}
     except requests.exceptions.HTTPError as e:
         status_code = e.response.status_code if e.response else 500
         raise HTTPException(status_code=status_code, detail=str(e))

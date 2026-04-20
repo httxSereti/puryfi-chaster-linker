@@ -1,12 +1,28 @@
-import { useEffect, useState } from "react";
-import { Loader2, Lock, ShieldCheck } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import { Loader2, ShieldCheck } from "lucide-react";
 import axios from "axios";
-import type { PartnerGetConfigurationAuthRepDto } from "@/types/chaster";
+import type { ChasterExtensionConfigurationSchema } from "@/types/chaster";
+import ConfigurationOptions from "@/components/common/configuration/ConfigurationOptions";
+
+function postToParent(event: string, payload?: object) {
+  window.parent.postMessage(
+    JSON.stringify({ type: "partner_configuration", event, ...(payload ? { payload } : {}) }),
+    "*"
+  );
+}
 
 export default function Configuration() {
-  const [configurationData, setConfigurationData] = useState<PartnerGetConfigurationAuthRepDto | null>(null);
+  const [configurationData, setConfigurationData] = useState<ChasterExtensionConfigurationSchema | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+
+  // Keep a mutable ref to the latest config & token so the event listener always has fresh values
+  const configRef = useRef<ChasterExtensionConfigurationSchema | null>(null);
+  const tokenRef = useRef<string>("");
+
+  useEffect(() => {
+    postToParent("capabilities", { features: { save: true } });
+  }, []);
 
   useEffect(() => {
     const fetchSession = async () => {
@@ -22,9 +38,13 @@ export default function Configuration() {
           throw new Error("partnerConfigurationToken not found in parameters.");
         }
 
+        tokenRef.current = params.partnerConfigurationToken;
+
         const backendUrl = import.meta.env.VITE_BACKEND_URL || "http://localhost:8090";
         const response = await axios.get(`${backendUrl}/api/extensions/configuration/${params.partnerConfigurationToken}`);
         setConfigurationData(response.data);
+        console.log(response.data)
+        configRef.current = response.data;
       } catch (err: any) {
         if (axios.isAxiosError(err)) {
           setError(err.response?.data?.detail || "Error syncing with local server.");
@@ -38,6 +58,47 @@ export default function Configuration() {
 
     fetchSession();
   }, []);
+
+  useEffect(() => {
+    const handleMessage = async (e: MessageEvent) => {
+      if (typeof e.data !== "string") return;
+
+      let parsed: { type?: string; event?: string };
+      try {
+        parsed = JSON.parse(e.data);
+      } catch {
+        return;
+      }
+
+      if (parsed.type !== "chaster" || parsed.event !== "partner_configuration_save") return;
+
+      // Show spinner on the Chaster modal
+      postToParent("save_loading");
+
+      try {
+        const backendUrl = import.meta.env.VITE_BACKEND_URL || "http://localhost:8090";
+
+        await axios.put(
+          `${backendUrl}/api/extensions/configuration/${tokenRef.current}`,
+          configRef.current?.config ?? {},
+        );
+
+        // Signal success — Chaster will close the modal
+        postToParent("save_success");
+      } catch (err: any) {
+        // Stop spinner and keep modal open
+        postToParent("save_failed");
+        const detail = axios.isAxiosError(err)
+          ? err.response?.data?.detail || "Save failed."
+          : "Unexpected error.";
+        setError(detail);
+      }
+    };
+
+    window.addEventListener("message", handleMessage);
+    return () => window.removeEventListener("message", handleMessage);
+  }, []);
+
 
   return (
     <div className="flex items-center justify-center min-h-screen bg-[rgb(36,34,45)] text-slate-100 p-4 font-sans">
@@ -72,35 +133,33 @@ export default function Configuration() {
             </div>
           ) : configurationData ? (
             <div className="w-full space-y-4">
-              <div className="w-full p-4 bg-slate-950 border border-slate-800 rounded-xl space-y-3">
+              <div className="w-full p-4 flex justify-between bg-slate-950 border border-slate-800 rounded-xl space-y-3 items-center">
                 <div className="flex items-center gap-3">
-                  <ShieldCheck className="w-5 h-5 text-emerald-400" />
-                  <p className="text-sm font-semibold text-slate-200">Session Synced</p>
+                  <ShieldCheck className="w-5 h-5 text-slate-400" />
+                  <p className="text-sm font-semibold text-slate-200">Puryfi Link:</p>
+                  {configurationData.is_linked ? (
+                    <span className="text-sm font-semibold text-emerald-400">Linked</span>
+                  ) : (
+                    <span className="text-sm font-semibold text-red-400">Not linked</span>
+                  )}
                 </div>
-                <div className="grid grid-cols-2 gap-2 text-left">
-                  <div>
-                    <p className="text-xs text-slate-500 uppercase tracking-wider">Role</p>
-                    <p className="text-sm font-medium text-slate-300 capitalize">{configurationData.user}</p>
-                  </div>
-                  <div>
-                    <p className="text-xs text-slate-500 uppercase tracking-wider">Config</p>
-                    <p className="text-sm font-medium text-slate-300 capitalize">{JSON.stringify(configurationData.config)}</p>
-                  </div>
-                </div>
-                <div className="text-left bg-slate-900 p-3 rounded-lg border border-slate-800">
-                  <div className="flex items-center gap-2 mb-1">
-                    <Lock className="w-4 h-4 text-cyan-500" />
-                    <p className="text-xs text-slate-500 uppercase tracking-wider">Lock</p>
-                  </div>
-                  {/* <p className="text-sm font-mono text-cyan-300 truncate" title={configurationData.session.lock._id}>
-                    {configurationData.session.lock._id}
-                  </p> */}
+                <div className="flex items-center justify-center">
                 </div>
               </div>
 
-              <button className="w-full py-3 px-4 bg-cyan-600 hover:bg-cyan-500 text-white text-sm font-semibold rounded-xl transition-colors shadow-lg shadow-cyan-900/20 active:scale-95">
-                Sync
-              </button>
+              <ConfigurationOptions
+                config={configurationData.config}
+                onChange={(updatedConfig) => {
+                  setConfigurationData({
+                    ...configurationData,
+                    config: updatedConfig
+                  });
+                  configRef.current = {
+                    ...configurationData,
+                    config: updatedConfig
+                  };
+                }}
+              />
             </div>
           ) : null}
         </div>

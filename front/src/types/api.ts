@@ -3,4 +3,6 @@ export interface ChasterExtensionSessionSchema {
     role: string;
     is_linked: boolean;
     link_token: string | null;
+    lock_on_freeze: boolean;
+    unlock_on_unfreeze: boolean;
 }

@@ -8,3 +8,5 @@ class ChasterExtensionSessionSchema(BaseModel):
     role: str
     is_linked: bool
     link_token: str | None = None
+    lock_on_freeze: bool = False
+    unlock_on_unfreeze: bool = False

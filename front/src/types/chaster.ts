@@ -46,10 +46,15 @@ export interface PartnerGetSessionAuthRepDto {
   session: PartnerSession;
 }
 
-export interface PartnerGetConfigurationAuthRepDto {
-  sessionId: string | null;
-  extensionSlug: string;
-  user: string;
-  config: any;
-  createdAt: string;
+export interface ChasterExtensionConfigSchema {
+  lock_on_freeze: boolean;
+  unlock_on_unfreeze: boolean;
+}
+
+export interface ChasterExtensionConfigurationSchema {
+  id: string;
+  role: string;
+  is_linked: boolean;
+  link_token: string | null;
+  config: ChasterExtensionConfigSchema;
 }

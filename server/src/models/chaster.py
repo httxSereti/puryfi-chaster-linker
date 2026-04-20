@@ -45,3 +45,11 @@ class PartnerGetSessionAuthRepDto(BaseModel):
     role: str
     userId: str
     session: PartnerSession
+
+class PartnerConfigurationForPublic(BaseModel):
+    config: dict = {}
+    role: str
+    user: str
+    sessionId: Optional[str] = None
+    extensionSlug: str
+    createdAt: str

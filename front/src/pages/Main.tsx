@@ -71,7 +71,28 @@ export default function Main() {
               <p className="text-sm text-slate-400 animate-pulse">Fetching session...</p>
             </div>
           ) : sessionData ? (
-            <ChasterSession session={sessionData} />
+            <>
+              <ChasterSession session={sessionData} />
+              <div className="w-full mt-4 p-4 flex flex-col gap-2 bg-slate-950 border border-slate-800 rounded-xl text-left">
+                <p className="text-xs font-semibold uppercase text-slate-500">Settings from Chaster Configuration</p>
+                <div className="flex justify-between items-center bg-slate-900 border border-slate-700/50 p-2 px-3 rounded-lg">
+                  <span className="text-sm text-slate-300">Lock on Freeze</span>
+                  {sessionData.lock_on_freeze ? (
+                    <span className="text-xs font-bold text-cyan-400 uppercase tracking-wider">Enabled</span>
+                  ) : (
+                    <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">Disabled</span>
+                  )}
+                </div>
+                <div className="flex justify-between items-center bg-slate-900 border border-slate-700/50 p-2 px-3 rounded-lg">
+                  <span className="text-sm text-slate-300">Unlock on Unfreeze</span>
+                  {sessionData.unlock_on_unfreeze ? (
+                    <span className="text-xs font-bold text-emerald-400 uppercase tracking-wider">Enabled</span>
+                  ) : (
+                    <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">Disabled</span>
+                  )}
+                </div>
+              </div>
+            </>
           ) : null}
         </div>
       </div>

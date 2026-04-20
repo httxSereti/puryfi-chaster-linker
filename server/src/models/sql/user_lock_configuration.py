@@ -24,6 +24,11 @@ class UserLockConfiguration(Base):
     # Chaster user id of the wearer
     wearer_id: Mapped[str | None] = mapped_column(String(128), nullable=True, index=True)
 
+    # configurations
+    lock_password: Mapped[str | None] = mapped_column(String(128), nullable=True)
+    lock_on_freeze: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+    unlock_on_unfreeze: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+
     def __repr__(self) -> str:
         return (
             f"<UserLockConfiguration id={self.id!r} "

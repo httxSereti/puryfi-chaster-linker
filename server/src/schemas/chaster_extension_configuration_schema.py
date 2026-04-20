@@ -1,0 +1,19 @@
+from typing import Any
+from typing import Optional
+from pydantic import BaseModel, ConfigDict
+
+class ChasterExtensionConfigSchema(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    lock_on_freeze: bool = False
+    unlock_on_unfreeze: bool = False
+
+class ChasterExtensionConfigurationSchema(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: str
+    role: str
+    is_linked: bool
+    link_token: Optional[str] = None
+
+    config: Optional[ChasterExtensionConfigSchema] = None
