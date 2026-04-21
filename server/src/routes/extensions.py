@@ -72,6 +72,7 @@ async def fetch_session(mainToken: str, db: Session = Depends(get_db)):
         link_token=lock_config.link_token,
         lock_on_freeze=lock_config.lock_on_freeze,
         unlock_on_unfreeze=lock_config.unlock_on_unfreeze,
+        lock_password=lock_config.lock_password,
     )
 
     return session_schema
@@ -102,6 +103,7 @@ async def create_link_token(session_id: str, db: Session = Depends(get_db)):
         link_token=lock_config.link_token,
         lock_on_freeze=lock_config.lock_on_freeze,
         unlock_on_unfreeze=lock_config.unlock_on_unfreeze,
+        lock_password=lock_config.lock_password,
     )
 
 @router.get("/configuration/{configurationToken}", response_model=ChasterExtensionConfigurationSchema)

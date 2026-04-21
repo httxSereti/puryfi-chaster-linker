@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Loader2 } from "lucide-react";
+import { Loader2, Eye, EyeOff, Copy, Check } from "lucide-react";
 import axios from "axios";
 
 import type { ChasterExtensionSessionSchema } from "@/types/api";
@@ -9,6 +9,16 @@ export default function Main() {
   const [sessionData, setSessionData] = useState<ChasterExtensionSessionSchema | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [showPassword, setShowPassword] = useState(false);
+  const [copied, setCopied] = useState(false);
+
+  const handleCopyPassword = () => {
+    if (sessionData?.lock_password) {
+      navigator.clipboard.writeText(sessionData.lock_password);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    }
+  };
 
   useEffect(() => {
     const fetchSession = async () => {
@@ -91,6 +101,36 @@ export default function Main() {
                     <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">Disabled</span>
                   )}
                 </div>
+                {sessionData.lock_password && sessionData.role === "keyholder" && (
+                  <div className="flex flex-col gap-2 bg-slate-900 border border-slate-700/50 p-3 rounded-lg">
+                    <div className="flex justify-between items-center">
+                      <span className="text-sm text-slate-300">Emergency Lock Password</span>
+                      <button
+                        onClick={() => setShowPassword(!showPassword)}
+                        className="text-slate-400 hover:text-cyan-400 transition-colors flex items-center gap-1 text-xs font-medium bg-slate-800 px-2 py-1 rounded"
+                      >
+                        {showPassword ? (
+                          <><EyeOff size={14} /> Ocult</>
+                        ) : (
+                          <><Eye size={14} /> Reveal</>
+                        )}
+                      </button>
+                    </div>
+                    {showPassword && (
+                      <div className="flex justify-between items-center bg-black/40 p-2 rounded border border-slate-800 mt-1">
+                        <span className="text-sm font-mono text-cyan-400 tracking-wider">
+                          {sessionData.lock_password}
+                        </span>
+                        <button
+                          onClick={handleCopyPassword}
+                          className="text-slate-400 hover:text-emerald-400 transition-colors p-1"
+                        >
+                          {copied ? <Check size={16} className="text-emerald-400" /> : <Copy size={16} />}
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
             </>
           ) : null}

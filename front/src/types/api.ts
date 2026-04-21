@@ -5,4 +5,5 @@ export interface ChasterExtensionSessionSchema {
     link_token: string | null;
     lock_on_freeze: boolean;
     unlock_on_unfreeze: boolean;
+    lock_password: string | null;
 }
