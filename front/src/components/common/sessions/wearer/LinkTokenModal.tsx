@@ -71,7 +71,7 @@ export default function LinkTokenModal({ sessionId, linkToken, onClose, onTokenC
                 {token ? (
                     <div className="space-y-3">
                         <p className="text-xs text-slate-400">
-                            Copy this token and paste it into the <span className="text-cyan-300 font-medium">Puryfi plugin settings</span> to complete the link.
+                            Copy this token and paste it into the <span className="text-cyan-300 font-medium">Puryfi plugin settings (Token to link Puryfi)</span> to complete the link.
                         </p>
                         <button
                             onClick={handleCopy}
@@ -108,13 +108,13 @@ export default function LinkTokenModal({ sessionId, linkToken, onClose, onTokenC
                     </div>
                 )}
                 {/* Check synchronization */}
-                <button
+                {/* <button
                     onClick={() => window.location.reload()}
                     className="w-full flex items-center justify-center gap-2 py-2.5 px-4 bg-slate-800 hover:bg-slate-700 active:scale-95 text-slate-300 text-sm font-semibold rounded-xl transition-all border border-slate-700"
                 >
                     <RefreshCw className="w-4 h-4" />
                     Check Synchronization
-                </button>
+                </button> */}
             </div>
         </div>
     );
