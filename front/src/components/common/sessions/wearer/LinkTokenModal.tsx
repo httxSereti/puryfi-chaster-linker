@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Copy, Check, Key, Loader2, RefreshCw, X } from "lucide-react";
+import { Copy, Check, Key, Loader2, X } from "lucide-react";
 import axios from "axios";
 
 interface LinkTokenModalProps {

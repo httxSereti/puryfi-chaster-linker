@@ -1,6 +1,6 @@
 import { useState } from "react";
 import type { ChasterExtensionSessionSchema } from "@/types/api";
-import { Link2, ShieldCheck } from "lucide-react";
+import { Link2 } from "lucide-react";
 import LinkTokenModal from "./LinkTokenModal";
 
 export default function ChasterWearerSession({ session }: { session: ChasterExtensionSessionSchema }) {
