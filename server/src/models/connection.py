@@ -14,7 +14,6 @@ manifest = {
 
 intents = [
     "readUserState", # read username
-    "readMediaProcesses", # scan for censored objects
     "writeLockConfigurationState", # lock puryfi
     "writeEnabledState", # enable/disable puryfi
 ]
@@ -35,34 +34,6 @@ class Connection:
                 "type": "string",
                 "value": "",
             },
-            "logEmptyObjects": {
-                "name": "Log Empty Scans",
-                "type": "boolean",
-                "value": False,
-            },
-            "chasterToken": {
-                "name": "Your Chaster API token",
-                "type": "string",
-                "value": "",
-            },
-            "chasterLockId": {
-                "name": "Chaster Lock Identifier to interact with",
-                "type": "string",
-                "value": "",
-            },
-            "chasterConsequenceDuration": {
-                "name": "Duration to add to the lock (in seconds)",
-                "type": "number",
-                "value": 60,
-            },
-            "chasterConsequenceTriggerNumber": {
-                "name": "Number of times subject is allowed to view a Censored Object",
-                "type": "number",
-                "value": 100,
-            },
-        }
-        self.store = {
-            "censoredPicturesViewed": 0,
         }
         self.intents_granted_event = asyncio.Event()
 
@@ -110,7 +81,6 @@ class Connection:
             response = {"type": "ok"}
             # Start initialization process in background
             asyncio.create_task(self.initialize_plugin())
-            print("READY")
             
         elif msg_type == "configurationChange":
             configuration = payload.get("configuration", self.configuration)
@@ -131,28 +101,6 @@ class Connection:
             if all(intent in granted_intents for intent in required_intents):
                 self.intents_granted_event.set()
                 
-        elif msg_type == "staticMediaScan":
-            objects = payload.get("objects", [])
-            is_log_empty = self.configuration.get("logEmptyObjects", {}).get("value", False)
-            
-            if not is_log_empty and len(objects) == 0:
-                pass
-            else:
-                print(f"Scan event: {len(objects)} object(s) detected")
-                for obj in objects:
-                    # user had something censored in his view
-                    self.store["censoredPicturesViewed"] += 1
-                    if self.store["censoredPicturesViewed"] >= self.configuration.get("chasterConsequenceTriggerNumber", {}).get("value", 5):
-                        # trigger duration add
-                        print("[Puryfi-Linker] Too many censored pictures seen! Adding {} seconds to lock".format(self.configuration.get("chasterConsequenceDuration", {}).get("value", 60)))
-                        data = addDurationToLock(
-                            lockId=self.configuration.get("chasterLockId", {}).get("value", ""),
-                            duration=self.configuration.get("chasterConsequenceDuration", {}).get("value", 60),
-                            token=self.configuration.get("chasterToken", {}).get("value", ""),
-                        )
-                        print(data)
-                        self.store["censoredPicturesViewed"] = 0
-
         if response_id is not None and response is not None:
             await self.send_response(response_id, response)
 
@@ -203,6 +151,7 @@ class Connection:
                 print(f"Failed to get plugin intents: {res.get('message')}")
                 return
                 
+            # 4. Request Intents
             granted_intents = res.get("intents", [])
             if not all(intent in granted_intents for intent in intents):
                 res = await self.send_message("requestPluginIntents", {"intents": intents})
@@ -212,19 +161,10 @@ class Connection:
                 # Wait for the client to grant intents through the 'intentsGrant' message
                 await self.intents_granted_event.wait()
                 
-            # 4. Subscribe to Static Media Scans
-            res = await self.send_message("subscribeToStaticMediaScans", {})
-            if res.get("type", "") == "error":
-                print(f"Failed to subscribe to static media scans: {res.get('message')}")
-                return
-
-            # 5. Get User State for username
+            # Get User State for username
             res = await self.send_message("getState", {"path": "user.username"})
             username = res.get("value")
             self.username = username
-
-            # 6. Get User State for session id
-            
 
         except Exception as e:
             print(f"Initialization error: {e}")
