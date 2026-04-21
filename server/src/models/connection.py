@@ -2,6 +2,7 @@ import asyncio
 import msgpack
 from fastapi import WebSocket
 from utils.chaster_api import addDurationToLock
+from services.queue import fetch_and_delete_queued_messages
 
 manifest = {
     "name": "Puryfi-Chaster-Linker",
@@ -24,8 +25,8 @@ class Connection:
         self.next_response_id = 0
         self.pending_requests = {}
 
-        self.username = ""
-        self.link_token = ""
+        self.username: str | None = None
+        self.link_token: str | None = None
         self.is_linked = False
 
         self.configuration = {
@@ -109,6 +110,7 @@ class Connection:
             response = {"type": "ok"}
             # Start initialization process in background
             asyncio.create_task(self.initialize_plugin())
+            print("READY")
             
         elif msg_type == "configurationChange":
             configuration = payload.get("configuration", self.configuration)
@@ -119,6 +121,8 @@ class Connection:
                 asyncio.create_task(self._link_with_token(linkToken))
 
             self.configuration = configuration
+            print("CONFIGURATION CHANGED")
+
                 
             
         elif msg_type == "intentsGrant":
@@ -155,11 +159,30 @@ class Connection:
     async def _link_with_token(self, link_token: str) -> None:
         """Delegate to the link service and update local state on success."""
         from services.link import link_with_token  # lazy import — avoids circular dependency
-        success = await link_with_token(link_token, username=self.username or "user")
-        if success:
-            self.link_token = link_token
+
+        if await link_with_token(link_token, username=self.username):
             self.is_linked = True
+            self.link_token = link_token
             
+            queued_messages = fetch_and_delete_queued_messages(link_token)
+            
+            async def process_queue_msg(msg_type, payload):
+                res = await self.send_message(msg_type, payload)
+                if isinstance(res, dict) and res.get("type") == "error":
+                    error_name = res.get("name")
+                    error_msg = res.get("message")
+                    print(f"[Queue Error] Failed to send '{msg_type}': {error_name} - {error_msg}")
+                    
+                    if error_name == "missingPluginIntents":
+                        print("[Queue] Requeuing message due to missing intents")
+                        from services.queue import queue_message
+                        queue_message(self.link_token, msg_type, payload)
+                        # Optionally request intents again
+                        await self.send_message("requestPluginIntents", {"intents": intents})
+
+            for msg in queued_messages:
+                print(f"[Queue] Sending queued message: {msg['msg_type']}")
+                asyncio.create_task(process_queue_msg(msg["msg_type"], msg["payload"]))
     async def initialize_plugin(self):
         try:
             # 1. Set Plugin Manifest
@@ -199,6 +222,9 @@ class Connection:
             res = await self.send_message("getState", {"path": "user.username"})
             username = res.get("value")
             self.username = username
+
+            # 6. Get User State for session id
+            
 
         except Exception as e:
             print(f"Initialization error: {e}")

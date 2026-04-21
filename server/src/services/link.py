@@ -3,7 +3,7 @@ from models.sql.user_lock_configuration import UserLockConfiguration
 from utils.chaster_api import create_custom_log
 
 
-async def link_with_token(link_token: str, username: str = "user") -> bool:
+async def link_with_token(link_token: str, username: str) -> bool:
     """
     Look up the UserLockConfiguration matching link_token and mark it as linked.
     Returns True if the link was successful, False otherwise.
@@ -22,6 +22,7 @@ async def link_with_token(link_token: str, username: str = "user") -> bool:
             return False
 
         lock_config.is_linked = True
+        lock_config.puryfi_username = username
         db.commit()
 
         session_id = lock_config.session_id

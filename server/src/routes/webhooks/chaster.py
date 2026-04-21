@@ -3,11 +3,12 @@ from models.connection_manager import manager
 from fastapi.security import HTTPBasic, HTTPBasicCredentials
 from fastapi.responses import JSONResponse
 from fastapi import status, Depends, HTTPException, Request
+from .actions import handle_lock_frozen, handle_lock_unfrozen, handle_extension_updated
 import os
 import secrets
 from pprint import pprint
 
-router = APIRouter(tags=["chaster"])
+router = APIRouter(prefix="/api/webhooks", tags=["webhook"])
 security = HTTPBasic()
 
 def verify_credentials(credentials: HTTPBasicCredentials = Depends(security)):
@@ -31,31 +32,35 @@ def verify_credentials(credentials: HTTPBasicCredentials = Depends(security)):
     return credentials.username
 
 
-@router.post("/extension/webhooks/chaster")
-async def read_chaster_webhook(request: Request, credentials: HTTPBasicCredentials = Depends(security)):
+@router.post("/extensions/chaster")
+async def chaster_webhook(request: Request, credentials: HTTPBasicCredentials = Depends(security)):
+    """
+        Chaster webhook endpoint
+    """
     print("----- PAYLOAD -----")
     data = await request.json()
     pprint(data)
     
-    # connection = manager.get_by_username(username)
-    # if connection:
-    #     # enable Puryfi
-    #     resEnabled = await connection.send_message("setState", {"path": "enabled", "value": True})
-    #     print(resEnabled)
+    event: str = data["event"]
+    requestId: str = data["requestId"]
 
-    #     print("--------")
-    #     # lock puryfi
-    #     resPassword = await connection.send_message("setState", {
-    #         "path": "lockConfiguration", 
-    #         "value": {
-    #             "password": {"secret": "test"}
-    #         }
-    #     })
-    #     # resToken = await connection.send_message("setState", {"path": "lockConfiguration.emergencyClientToken", "value": 444})
-       
-    #     print(resPassword)
-    #     # print(resToken)
+    print(f"event '{event}'")
+    print(f"requestId '{requestId}'")
+    print("-------------")
+    
+    if event == "action_log.created":
+        actionPayload: dict = data["data"]["actionLog"]
+        actionType: str = actionPayload["type"]
 
-    #     return {"status": "ok"}
+        print(f"actionType '{actionType}'")
+        
+        if actionType == "lock_frozen":
+            return await handle_lock_frozen(data)
+
+        if actionType == "lock_unfrozen":
+            return await handle_lock_unfrozen(data)
+
+        if actionType == "extension_updated":
+            return await handle_extension_updated(data)
 
     return {"status": "ok"}

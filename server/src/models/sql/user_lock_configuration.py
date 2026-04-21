@@ -24,6 +24,9 @@ class UserLockConfiguration(Base):
     # Chaster user id of the wearer
     wearer_id: Mapped[str | None] = mapped_column(String(128), nullable=True, index=True)
 
+    # puryfi username
+    puryfi_username: Mapped[str | None] = mapped_column(String(128), nullable=True, index=True)
+
     # configurations
     lock_password: Mapped[str | None] = mapped_column(String(128), nullable=True)
     lock_on_freeze: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)

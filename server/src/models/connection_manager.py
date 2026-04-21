@@ -22,9 +22,14 @@ class ConnectionManager:
 
     def get_by_username(self, username: str) -> Connection | None:
         for connection in self._connections:
-            if connection.username.lower() == username.lower():
+            if connection.username == username:
                 return connection
         return None
 
+    def get_by_link_token(self, link_token: str) -> Connection | None:
+        for connection in self._connections:
+            if connection.configuration.get("linkToken", {}).get("value", "") == link_token:
+                return connection
+        return None
 
 manager = ConnectionManager()

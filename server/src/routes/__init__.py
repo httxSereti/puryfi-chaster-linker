@@ -1,3 +1,3 @@
-from routes import websocket, webhook, extensions
+from . import websocket, webhooks, extensions
 
-__all__ = ["websocket", "webhook", "extensions"]
+__all__ = ["websocket", "webhooks", "extensions"]
