@@ -30,7 +30,7 @@ class Connection:
 
         self.configuration = {
             "linkToken": {
-                "name": "Token to link Puryfi with Chaster",
+                "name": "Link Token",
                 "type": "string",
                 "value": "",
             },

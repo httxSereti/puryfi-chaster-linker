@@ -71,7 +71,7 @@ export default function LinkTokenModal({ sessionId, linkToken, onClose, onTokenC
                 {token ? (
                     <div className="space-y-3">
                         <p className="text-xs text-slate-400">
-                            Copy this token and paste it into the <span className="text-cyan-300 font-medium">Puryfi plugin settings (Token to link Puryfi)</span> to complete the link.
+                            Copy this token and paste it into the <span className="text-cyan-300 font-medium">Puryfi plugin settings (Link Token)</span> to complete the link.
                         </p>
                         <button
                             onClick={handleCopy}
