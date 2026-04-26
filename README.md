@@ -19,7 +19,7 @@ I'll make public this extension on Chaster extension when it'll be ready.
 
 ## Run
 
-**⚠ Fill the `.env` file first.**
+**⚠ Fill the `.env` file before running using docker compose.**
 
 ```bash
 git clone https://github.com/httxSereti/puryfi-chaster-linker.git
