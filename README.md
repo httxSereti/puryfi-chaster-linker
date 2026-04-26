@@ -19,9 +19,12 @@ I'll make public this extension on Chaster extension when it'll be ready.
 
 ## Run
 
-### using Docker Compose
-Fill the .env file first
+**⚠ Fill the `.env` file first.**
+
 ```bash
+git clone https://github.com/httxSereti/puryfi-chaster-linker.git
+cd puryfi-chaster-linker
+cp .env.example .env
 docker compose up -d
 ```
 
@@ -36,6 +39,6 @@ Webhook URL: https://<your-public-domain>/api/webhooks/extensions/chaster
 ```
 3. Run using Docker Compose
 4. Open Puryfi -> Plugins -> Register new plugin -> WebSocket (default url: ws://localhost:8000)
-5. Use the Chaster extension (main page as wearer only) to generate a linking token
-6. Link Chaster extension in the plugin settings
+5. Use the Chaster extension (open main page of the extension as wearer only) to generate a linking token
+6. Link Chaster extension in the plugin settings (copy paste the token)
 7. Enjoy!
